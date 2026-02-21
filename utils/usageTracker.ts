@@ -8,7 +8,7 @@ interface UsageData {
     lastUsed: string; // ISO date string without time
 }
 
-export const checkAndUpdateUsage = async (uid: string, featureType: 'prayer' | 'deepDive'): Promise<boolean> => {
+export const checkAndUpdateUsage = async (uid: string, featureType: 'prayer' | 'deepDive' | 'ai_scan' | 'sermon'): Promise<boolean> => {
     try {
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);

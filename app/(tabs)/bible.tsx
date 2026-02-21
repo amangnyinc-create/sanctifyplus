@@ -1,10 +1,14 @@
-import { View, Text, StyleSheet, TouchableOpacity, Button, ActivityIndicator, Image, PanResponder, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Button, ActivityIndicator, Image, PanResponder, Dimensions, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { useRouter } from 'expo-router';
+import { auth, db } from '../../config/firebaseConfig';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { checkAndUpdateUsage } from '../../utils/usageTracker';
 
 // Initialize Gemini (Will use env variable)
 const ai = new GoogleGenAI({ apiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY });
@@ -20,6 +24,7 @@ export default function BibleScreen() {
     const [verseText, setVerseText] = useState('"For God so loved the world..."');
     const [originalWord, setOriginalWord] = useState("Agape (Greek: ἀγάπη)");
     const [meaning, setMeaning] = useState("Self-sacrificial love, focusing on the will rather than emotions.");
+    const router = useRouter();
 
     // Resizable Crop Box State
     const initialBox = { w: 300, h: 200 };
@@ -66,6 +71,25 @@ export default function BibleScreen() {
 
     const handleDeepDive = async () => {
         if (!cameraRef.current || isAnalyzing) return;
+
+        const user = auth.currentUser;
+        if (!user) {
+            Alert.alert("Authentication Required", "Please log in to use the Bible Scanner.");
+            return;
+        }
+
+        const canUse = await checkAndUpdateUsage(user.uid, 'ai_scan');
+        if (!canUse) {
+            Alert.alert(
+                "Daily Limit Reached",
+                "You've used all 3 free scans for today. Upgrade to Sanctify Plus Premium for unlimited scans!",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Upgrade Now", onPress: () => router.push('/billing') }
+                ]
+            );
+            return;
+        }
 
         setIsAnalyzing(true);
         setCapturedImage(null); // Clear previous
@@ -201,6 +225,30 @@ Do not include \`\`\`json markdown blocks, just the raw JSON.`;
                                 <Text style={styles.originalWord}>{originalWord}</Text>
                                 <Text style={styles.meaning}>{meaning}</Text>
                             </View>
+
+                            <TouchableOpacity
+                                style={{ marginTop: 15, backgroundColor: '#FFFBEB', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
+                                onPress={async () => {
+                                    const user = auth.currentUser;
+                                    if (!user) return;
+                                    try {
+                                        await addDoc(collection(db, 'users', user.uid, 'saved_verses'), {
+                                            reference: verseRef,
+                                            text: verseText,
+                                            originalWord: originalWord,
+                                            meaning: meaning,
+                                            savedAt: serverTimestamp()
+                                        });
+                                        Alert.alert("Saved", "This verse has been saved to your archive!");
+                                    } catch (err) {
+                                        console.error("Save error:", err);
+                                        Alert.alert("Error", "Could not save the verse.");
+                                    }
+                                }}
+                            >
+                                <Ionicons name="bookmark" size={20} color="#D4AF37" />
+                                <Text style={{ color: '#B45309', fontWeight: 'bold', marginLeft: 8 }}>Save Verse</Text>
+                            </TouchableOpacity>
                         </View>
                     )}
                 </View>
