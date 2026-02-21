@@ -9,9 +9,19 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.amangnyinc.sanctifyplus",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Sanctify Plus needs access to your camera to scan physical Bible verses for instantly performing original language analysis.",
+        "NSMicrophoneUsageDescription": "Sanctify Plus needs microphone access to record sermons and transcribe them."
+      }
     },
     "android": {
+      "package": "com.amangnyinc.sanctifyplus",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
