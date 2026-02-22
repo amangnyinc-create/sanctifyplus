@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Sanctify Plus",
-    "slug": "sanctify",
+    "slug": "sanctify-plus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
